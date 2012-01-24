@@ -5,10 +5,12 @@ import java.util.Random;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -32,6 +34,8 @@ public class StrobeLightsActivity extends Activity {
 	private long flickerInterval = 100;
 
 	private static final int ABOUT_ID = 1000;
+	
+	private PowerManager.WakeLock wakeLock;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -74,6 +78,14 @@ public class StrobeLightsActivity extends Activity {
 				return true;
 			}
 		});
+		
+		mainLayout.setOnClickListener(new View.OnClickListener() {
+
+			public void onClick(View v) {
+				speedBar.setVisibility(View.INVISIBLE);	
+			}
+			
+		});
 
 		isRunning = true;
 		mainThread = new Thread(new Runnable() {
@@ -95,16 +107,23 @@ public class StrobeLightsActivity extends Activity {
 		});
 
 		mainThread.start();
+		
+		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+		wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "com.ahmetkizilay.lights.StrobeLights");
+		wakeLock.acquire();
 
 	}
 
 	@Override
 	protected void onStop() {
 		isRunning = false;
+		wakeLock.release();
 		super.onStop();
 
 	}
+	
 
+	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getMenuInflater();
@@ -138,7 +157,7 @@ public class StrobeLightsActivity extends Activity {
 
 	private Dialog createAboutDialog() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setMessage("Strobe Lights\nVersion 1.1\n\nPERISONiC Sound And Media")
+		builder.setMessage("Strobe Lights\nVersion 1.2\n\nPERISONiC Sound And Media")
 		.setCancelable(false)
 		.setNeutralButton("OK", new OnClickListener() {
 			
