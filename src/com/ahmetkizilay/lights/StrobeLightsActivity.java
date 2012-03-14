@@ -1,5 +1,6 @@
 package com.ahmetkizilay.lights;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Random;
 
 import android.app.Activity;
@@ -34,7 +35,7 @@ public class StrobeLightsActivity extends Activity {
 	private long flickerInterval = 100;
 
 	private static final int ABOUT_ID = 1000;
-	
+
 	private PowerManager.WakeLock wakeLock;
 
 	@Override
@@ -42,8 +43,7 @@ public class StrobeLightsActivity extends Activity {
 
 		super.onCreate(savedInstanceState);
 
-		mainLayout = (LinearLayout) getLayoutInflater().inflate(R.layout.main,
-				null);
+		mainLayout = (LinearLayout) getLayoutInflater().inflate(R.layout.main, null);
 
 		mainLayout.setBackgroundColor(Color.BLACK);
 
@@ -65,8 +65,7 @@ public class StrobeLightsActivity extends Activity {
 
 			}
 
-			public void onProgressChanged(SeekBar seekBar, int progress,
-					boolean fromUser) {
+			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 				flickerInterval = 10 + progress * 5;
 			}
 		});
@@ -78,15 +77,20 @@ public class StrobeLightsActivity extends Activity {
 				return true;
 			}
 		});
-		
+
 		mainLayout.setOnClickListener(new View.OnClickListener() {
 
 			public void onClick(View v) {
-				speedBar.setVisibility(View.INVISIBLE);	
+				speedBar.setVisibility(View.INVISIBLE);
 			}
-			
+
 		});
 
+		// Thread.setDefaultUncaughtExceptionHandler(new CustomUncaughtExceptionHandler());
+
+	}
+
+	private void startThread() {
 		isRunning = true;
 		mainThread = new Thread(new Runnable() {
 			public void run() {
@@ -107,23 +111,15 @@ public class StrobeLightsActivity extends Activity {
 		});
 
 		mainThread.start();
-		
-		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-		wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "com.ahmetkizilay.lights.StrobeLights");
-		wakeLock.acquire();
-
 	}
 
 	@Override
 	protected void onStop() {
 		isRunning = false;
-		wakeLock.release();
 		super.onStop();
 
 	}
-	
 
-	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getMenuInflater();
@@ -147,7 +143,7 @@ public class StrobeLightsActivity extends Activity {
 		Dialog dialog;
 		switch (id) {
 		case ABOUT_ID:
-			dialog = createAboutDialog(); 
+			dialog = createAboutDialog();
 			break;
 		default:
 			dialog = null;
@@ -157,14 +153,41 @@ public class StrobeLightsActivity extends Activity {
 
 	private Dialog createAboutDialog() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setMessage("Strobe Lights\nVersion 1.2\n\nPERISONiC Sound And Media")
-		.setCancelable(false)
-		.setNeutralButton("OK", new OnClickListener() {
-			
+		builder.setMessage("Strobe Lights\nVersion 1.3\n\nPERISONiC Sound And Media").setCancelable(false).setNeutralButton("OK", new OnClickListener() {
+
 			public void onClick(DialogInterface dialog, int which) {
-				dialog.dismiss();				
+				dialog.dismiss();
 			}
 		});
 		return builder.create();
+	}
+
+	@Override
+	protected void onResume() {
+		
+		startThread();
+		
+		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+		wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "com.ahmetkizilay.lights.StrobeLights");
+		wakeLock.acquire();
+		
+		super.onResume();
+	}
+
+	@Override
+	protected void onPause() {
+				
+		if (wakeLock.isHeld()) {
+			wakeLock.release();
+		}
+		super.onPause();
+	}
+
+	class CustomUncaughtExceptionHandler implements UncaughtExceptionHandler {
+		public void uncaughtException(Thread thread, Throwable ex) {
+			String message = ex.getMessage();
+			System.out.println(message);
+		}
+
 	}
 }
